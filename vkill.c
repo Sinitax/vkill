@@ -1,15 +1,35 @@
 #include <linux/limits.h>
+#include <strings.h>
 #include <unistd.h>
 #include <termios.h>
+#include <dirent.h>
 #include <wait.h>
+#include <ctype.h>
 #include <signal.h>
 #include <err.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
+static const char *strcasestr(const char *haystack, const char *needle);
+
 static char *readcmd(pid_t pid);
 static void killprompt(pid_t pid);
+
+const char *
+strcasestr(const char *haystack, const char *needle)
+{
+	size_t needle_len;
+
+	needle_len = strlen(needle);
+	while (*haystack) {
+		if (!strncasecmp(haystack, needle, needle_len))
+			return haystack;
+		haystack++;
+	}
+
+	return NULL;
+}
 
 char *
 readcmd(pid_t pid)
@@ -69,31 +89,39 @@ killprompt(pid_t pid)
 int
 main(int argc, const char **argv)
 {
-	pid_t pids[256];
-	int i, pidcnt;
+	pid_t pid, cpid;
+	struct dirent *ent;
+	DIR *dir;
 	char *end;
 	char *cmd;
+	int i;
 
-	setvbuf(stdin, NULL, _IONBF, 0);
-
-	pidcnt = 0;
-	for (i = 1; i < argc; i++) {
-		if (!*argv[i]) continue;
-		pids[pidcnt++] = strtoul(argv[i], &end, 10);
-		if (end && *end) errx(1, "Invalid pid: %s", argv[i]);
+	if (argc < 2) {
+		printf("Usage: vkill CMD..\n");
+		exit(1);
 	}
 
-	for (i = 0; i < pidcnt; i++) {
-		if (!kill(pids[i], 0)) {
-			cmd = readcmd(pids[i]);
-			printf("%u: %s", pids[i], cmd ? cmd : "???");
-			free(cmd);
-			killprompt(pids[i]);
-			printf("\n");
-			pids[i] = -1;
-			break;
-		} else {
-			fprintf(stderr, "%i: Not running\n", pids[i]);
+	cpid = getpid();
+
+	dir = opendir("/proc");
+	if (!dir) err(1, "opendir");
+
+	while ((ent = readdir(dir))) {
+		pid = strtoul(ent->d_name, &end, 10);
+		if (end && *end) continue;
+		if (pid == cpid) continue;
+
+		cmd = readcmd(pid);
+		for (i = 1; i < argc; i++) {
+			if (cmd && strcasestr(cmd, argv[i])) {
+				printf("%u: %s", pid, cmd ? cmd : "???");
+				killprompt(pid);
+				printf("\n");
+				break;
+			}
 		}
+		free(cmd);
 	}
+
+	closedir(dir);
 }
