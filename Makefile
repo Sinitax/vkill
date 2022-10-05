@@ -1,3 +1,5 @@
+PREFIX ?= /usr/local
+BINDIR ?= /bin
 
 all: vkill
 
@@ -6,4 +8,10 @@ clean:
 
 vkill: vkill.c
 
-.PHONY: all clean
+install: vkill
+	install -m755 vkill -T "$(DESTDIR)$(PREFIX)$(BINDIR)/vkill"
+
+uninstall:
+	rm -f "$(DESTDIR)$(PREFIX)$(BINDIR)/vkill"
+
+.PHONY: all clean install uninstall
