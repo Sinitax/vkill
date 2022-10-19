@@ -16,6 +16,8 @@ static const char *strcasestr(const char *haystack, const char *needle);
 static char *readcmd(pid_t pid);
 static void killprompt(pid_t pid);
 
+static int signum = SIGTERM;
+
 const char *
 strcasestr(const char *haystack, const char *needle)
 {
@@ -77,7 +79,7 @@ killprompt(pid_t pid)
 
 	c = getchar();
 	if (c == 'y') {
-		kill(pid, SIGTERM);
+		kill(pid, signum);
 		waitpid(pid, NULL, 0);
 	}
 
@@ -91,13 +93,26 @@ main(int argc, const char **argv)
 {
 	pid_t pid, cpid;
 	struct dirent *ent;
+	const char **arg;
+	const char *query;
+	char *end, *cmd;
 	DIR *dir;
-	char *end;
-	char *cmd;
 	int i;
 
-	if (argc < 2) {
-		printf("Usage: vkill CMD..\n");
+	query = NULL;
+	for (arg = &argv[1]; *arg; arg++) {
+		if (**arg == '-') {
+			signum = strtoul(*arg+1, &end, 10);
+			if (end && *end) errx(1, "Invalid signum");
+		} else if (query) {
+			errx(1, "Multiple queries");
+		} else {
+			query = *arg;
+		}
+	}
+
+	if (!query) {
+		printf("Usage: vkill [-SIGNUM] CMD\n");
 		exit(1);
 	}
 
