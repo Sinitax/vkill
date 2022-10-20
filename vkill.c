@@ -16,6 +16,7 @@ static const char *strcasestr(const char *haystack, const char *needle);
 static char *readcmd(pid_t pid);
 static void killprompt(pid_t pid);
 
+static const char usage[] = "vkill [-h] [-SIG] CMD";
 static int signum = SIGTERM;
 
 const char *
@@ -101,19 +102,23 @@ main(int argc, const char **argv)
 
 	query = NULL;
 	for (arg = &argv[1]; *arg; arg++) {
-		if (**arg == '-') {
+		if (!strcmp(*arg, "-h")) {
+			printf("Usage: %s\n", usage);
+			return 0;
+		} else if (**arg == '-') {
 			signum = strtoul(*arg+1, &end, 10);
 			if (end && *end) errx(1, "Invalid signum");
-		} else if (query) {
-			errx(1, "Multiple queries");
-		} else {
+		} else if (!query) {
 			query = *arg;
+		} else {
+			fprintf(stderr, "Usage: %s\n", usage);
+			return 1;
 		}
 	}
 
 	if (!query) {
-		printf("Usage: vkill [-SIGNUM] CMD\n");
-		exit(1);
+		fprintf(stderr, "Usage: %s\n", usage);
+		return 1;
 	}
 
 	cpid = getpid();
