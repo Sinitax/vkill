@@ -1,14 +1,14 @@
 PREFIX ?= /usr/local
 BINDIR ?= /bin
 
+CFLAGS = -Wunused-variable -Wunused-function
+
 all: vkill
 
 clean:
 	rm -f vkill
 
-vkill: vkill.c
-
-install: vkill
+install:
 	install -m755 vkill -T "$(DESTDIR)$(PREFIX)$(BINDIR)/vkill"
 
 uninstall:

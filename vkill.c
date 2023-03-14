@@ -11,11 +11,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static const char *strcasestr(const char *haystack, const char *needle);
-
-static char *readcmd(pid_t pid);
-static void killprompt(pid_t pid);
-
 static const char usage[] = "vkill [-h] [-SIG] CMD";
 static int signum = SIGTERM;
 
